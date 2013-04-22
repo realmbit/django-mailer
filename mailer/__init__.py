@@ -38,11 +38,15 @@ def send_mail(subject, message, from_email, recipient_list, priority="medium",
     subject = force_unicode(subject)
     message = force_unicode(message)
     
-    make_message(subject=subject,
-                 body=message,
-                 from_email=from_email,
-                 to=recipient_list,
-                 priority=priority).save()
+    message = make_message(subject=subject,
+                           body=message,
+                           from_email=from_email,
+                           to=recipient_list,
+                           priority=priority)
+    if priority == "high":
+        send_now(message)
+    else:
+        message.save()
     return 1
 
 
@@ -71,7 +75,10 @@ def send_html_mail(subject, message, message_html, from_email, recipient_list,
     email = EmailMultiAlternatives(email.subject, email.body, email.from_email, email.to)
     email.attach_alternative(message_html, "text/html")
     msg.email = email
-    msg.save()
+    if priority == "high":
+        send_now(msg)
+    else:
+        msg.save()
     return 1
 
 
@@ -102,3 +109,11 @@ def mail_managers(subject, message, fail_silently=False, connection=None, priori
                      message,
                      settings.SERVER_EMAIL,
                      [a[1] for a in settings.MANAGERS])
+
+def send_now(message):
+    connection = get_connection(backend=EMAIL_BACKEND)
+    logging.info("sending message now '%s' to %s" % (message.subject.encode("utf-8"), u", ".join(message.to_addresses).encode("utf-8")))
+    email = message.email
+    email.connection = connection
+    email.send()
+    MessageLog.objects.log(message, 1) # @@@ avoid using literal result code
