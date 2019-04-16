@@ -33,7 +33,7 @@ def prioritize():
     """
     Yield the messages in the queue in the order they should be sent.
     """
-    
+
     while True:
         while Message.objects.high_priority().count() or Message.objects.medium_priority().count():
             while Message.objects.high_priority().count():
@@ -51,9 +51,9 @@ def send_all():
     """
     Send all eligible messages in the queue.
     """
-    
+
     lock = FileLock("send_mail")
-    
+
     logging.debug("acquiring lock...")
     try:
         lock.acquire(LOCK_WAIT_TIMEOUT)
@@ -64,13 +64,13 @@ def send_all():
         logging.debug("waiting for the lock timed out. quitting.")
         return
     logging.debug("acquired.")
-    
+
     start_time = time.time()
-    
+
     dont_send = 0
     deferred = 0
     sent = 0
-    
+
     try:
         connection = None
         for message in prioritize():
@@ -84,7 +84,7 @@ def send_all():
                 MessageLog.objects.log(message, 1) # @@@ avoid using literal result code
                 message.delete()
                 sent += 1
-            except (socket_error, smtplib.SMTPSenderRefused, smtplib.SMTPRecipientsRefused, smtplib.SMTPAuthenticationError), err:
+            except (socket_error, smtplib.SMTPSenderRefused, smtplib.SMTPRecipientsRefused, smtplib.SMTPAuthenticationError) as err:
                 message.defer()
                 logging.info("message deferred due to failure: %s" % err)
                 MessageLog.objects.log(message, 3, log_message=str(err)) # @@@ avoid using literal result code
@@ -95,7 +95,7 @@ def send_all():
         logging.debug("releasing lock...")
         lock.release()
         logging.debug("released.")
-    
+
     logging.info("")
     logging.info("%s sent; %s deferred;" % (sent, deferred))
     logging.info("done in %.2f seconds" % (time.time() - start_time))
@@ -105,7 +105,7 @@ def send_loop():
     Loop indefinitely, checking queue at intervals of EMPTY_QUEUE_SLEEP and
     sending messages if any are on queue.
     """
-    
+
     while True:
         while not Message.objects.all():
             logging.debug("sleeping for %s seconds before checking queue again" % EMPTY_QUEUE_SLEEP)
