@@ -79,8 +79,10 @@ def db_to_email(data):
         b'SafeText'
     )
 
-    return pickle.loads(s2)
+    email_obj = pickle.loads(s2)
+    email_obj.reply_to = []
 
+    return email_obj
 
 class Message(models.Model):
 
