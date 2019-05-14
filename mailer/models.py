@@ -70,7 +70,17 @@ def db_to_email(data):
     if not data:
         return None
 
-    return pickle.loads(base64.decodebytes(data.encode('utf8')))
+    s = base64.decodebytes(
+        data.encode('utf8')
+    )
+
+    s2 = s.replace(
+        b'SafeUnicode',
+        b'SafeText'
+    )
+
+    return pickle.loads(s2)
+
 
 class Message(models.Model):
 
